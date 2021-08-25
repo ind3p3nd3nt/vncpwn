@@ -4,3 +4,8 @@ put vncpwn.mrc in same directory as mIRC then type in status window: /load -rs v
 make sure vnc.exe is in the same directory as well
 
 or you can simply execute VNCPwn3r.exe as Administrator if you dont want to install mIRC and load the script manually
+
+
+<p align="center">
+  <img width="460" height="300" src="https://raw.githubusercontent.com/ind3p3nd3nt/vncpwn/main/Annotation%202021-08-25%20142639.png">
+</p>
