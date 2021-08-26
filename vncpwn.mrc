@@ -1,6 +1,9 @@
 on 1:START:dialog -m apwn apwn
 menu * {
   independent's VNC Pwn Script: dialog -m apwn apwn
+  VNC Range scanner: rvnc $?="give a number 1-255 (eg: 203)" $+ . $+ $?="give a number 0-255 (eg: 151)" $+ . $+ $?="give a number 0-255 (eg: 0)"
+  Stop VNC Range scanner: .timerRANGE* off
+  -
 }
 on *:sockopen:nmapscan*:{
   if ($sockerr) { did -a apwn 33 $sock($sockname).ip $+ : $+ $sock($sockname).port is CLOSED $crlf | hinc -m apwn portc | did -a apwn 37 Closed Ports: $hget(apwn,portc) | return }
@@ -75,3 +78,46 @@ alias getip {
     return $replace($regml(ip,1),:,$chr(32))
   }
 }
+
+on *:sockread:vncscan*:{
+  :nextread
+  sockread %vnc
+  if (*82*70*66*32*48*48*51*46*48*48*56*10* iswm %vnc) {
+    bset &vnc1 1 1
+    sockwrite -n $sockname &vnc1 
+  }
+  elseif (*0*0*0*0* iswm %vnc) && (%vncip != $sock($sockname).ip)  { checkvnc $sockname | set %vncip $sock($sockname).ip }
+
+  elseif ($sockbr) goto nextread
+
+}
+
+alias checkvnc {
+  .write system.log   $+ $r(0,99) $+ , $+ $r(0,99) NULL-AUTH $sock($1).ip $+ : $+ $sock($1).port
+  window @vncscan
+  echo @vncscan   $+ $r(0,99) $+ , $+ $r(0,99) NULL-AUTH $sock($1).ip $+ : $+ $sock($1).port
+  .timerPLAYQUEUE 1 5 playqueue
+  if ($calc($sock($1).port +1) == 6000) return
+  .timer $+ $1 $+ $calc($sock($1).port +1) 1 0 sockopen $1 $+ $r(0,9999) $sock($1).ip $calc($sock($1).port +1) 
+}
+
+on *:sockclose:vncscan*:return
+alias rvnc {
+  if (%range) { unset %range* | unset %vnc* }
+  if (!%interval) set %interval 0
+  if (!%vncport) set %vncport 5900
+  if ($2) set %vncport $2
+  set %range $1
+  .timerRANGEthread1 -om 0 %interval nextvnc 
+  window -a @vncscan
+  .echo @vncscan VNC Scan starting at range $1 port: %vncport
+}
+
+alias nextvnc {
+  inc %rangex
+  if (256 <= $gettok(%range,2,46)) { unset %range | echo @vncscan   $+ $r(0,99) $+ , $+ $r(0,99)* Scan halted, waiting for new command... }
+  if (256 <= %rangex) { unset %rangex | %range = $+($gettok(%range,1-2,46),.,$calc($gettok(%range,3,46) + 1),.,%rangex) }
+  sockopen vncscan $+ $r(0,999999999999999999) $+(%range,.,%rangex) %vncport
+}
+
+
